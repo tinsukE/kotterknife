@@ -144,6 +144,19 @@ public class ViewTest : AndroidTestCase() {
     assertEquals(2, example.name.size)
   }
 
+  public fun testReset() {
+    class Example(context: Context) : FrameLayout(context) {
+      val name : View? by bindOptionalView(1)
+    }
+
+    val example = Example(getContext())
+    example.addView(viewWithId(1))
+    assertNotNull(example.name)
+    example.removeAllViews()
+    ButterKnife.reset(example)
+    assertNull(example.name)
+  }
+
   private fun viewWithId(id: Int) : View {
     val view = View(getContext())
     view.setId(id)
