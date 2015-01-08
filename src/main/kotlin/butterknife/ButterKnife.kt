@@ -8,6 +8,7 @@ import android.support.v7.widget.RecyclerView.ViewHolder
 import android.view.View
 import android.view.ViewGroup
 import kotlin.properties.ReadOnlyProperty
+import java.util.WeakHashMap
 
 public fun <T : View> ViewGroup.bindView(id: Int): ReadOnlyProperty<Any, T> = ViewBinding(id)
 public fun <T : View> Activity.bindView(id: Int): ReadOnlyProperty<Any, T> = ViewBinding(id)
@@ -37,6 +38,12 @@ public fun <T : View> Fragment.bindOptionalViews(vararg ids: Int): ReadOnlyPrope
 public fun <T : View> SupportFragment.bindOptionalViews(vararg ids: Int): ReadOnlyProperty<Any, List<T>> = OptionalViewListBinding(ids)
 public fun <T : View> ViewHolder.bindOptionalViews(vararg ids: Int): ReadOnlyProperty<Any, List<T>> = OptionalViewListBinding(ids)
 
+object ButterKnife {
+  fun reset(target: Any) {
+    LazyRegistry.reset(target)
+  }
+}
+
 private fun findView<T : View>(thisRef: Any, id: Int): T? {
   [suppress("UNCHECKED_CAST")]
   return when (thisRef) {
@@ -50,39 +57,38 @@ private fun findView<T : View>(thisRef: Any, id: Int): T? {
   } as T?
 }
 
-private class ViewBinding<T : View>(val id: Int) : ReadOnlyProperty<Any, T> {
-  private val lazy = Lazy<T>()
+private class ViewBinding<T : View>(val id: Int) : LazyReadOnlyProperty<T>() {
+  override fun create(thisRef: Any, desc: PropertyMetadata): T =
+      findView<T>(thisRef, id)
+          ?: throw IllegalStateException("View ID $id for '${desc.name}' not found.")
+}
+
+private class OptionalViewBinding<T : View>(val id: Int) : LazyReadOnlyProperty<T?>() {
+  override fun create(thisRef: Any, desc: PropertyMetadata): T? =
+      findView(thisRef, id)
+}
+
+private class ViewListBinding<T : View>(val ids: IntArray) : LazyReadOnlyProperty<List<T>>() {
+  override fun create(thisRef: Any, desc: PropertyMetadata): List<T> =
+      ids.map { id -> findView<T>(thisRef, id)
+          ?: throw IllegalStateException("View ID $id for '${desc.name}' not found.")
+      }
+}
+
+private class OptionalViewListBinding<T : View>(val ids: IntArray) : LazyReadOnlyProperty<List<T>>() {
+  override fun create(thisRef: Any, desc: PropertyMetadata): List<T> =
+      ids.map { id -> findView<T>(thisRef, id) }.filterNotNull()
+}
+
+private abstract class LazyReadOnlyProperty<T : Any?> : ReadOnlyProperty<Any, T> {
+  private val lazy: Lazy<T> = Lazy()
 
   override fun get(thisRef: Any, desc: PropertyMetadata): T = lazy.get {
-    findView<T>(thisRef, id)
-        ?: throw IllegalStateException("View ID $id for '${desc.name}' not found.")
+    LazyRegistry.register(thisRef, lazy)
+    create(thisRef, desc)
   }
-}
 
-private class OptionalViewBinding<T : View>(val id: Int) : ReadOnlyProperty<Any, T?> {
-  private val lazy = Lazy<T?>()
-
-  override fun get(thisRef: Any, desc: PropertyMetadata): T? = lazy.get {
-    findView<T>(thisRef, id)
-  }
-}
-
-private class ViewListBinding<T : View>(val ids: IntArray) : ReadOnlyProperty<Any, List<T>> {
-  private var lazy = Lazy<List<T>>()
-
-  override fun get(thisRef: Any, desc: PropertyMetadata): List<T> = lazy.get {
-    ids.map { id -> findView<T>(thisRef, id)
-        ?: throw IllegalStateException("View ID $id for '${desc.name}' not found.")
-    }
-  }
-}
-
-private class OptionalViewListBinding<T : View>(val ids: IntArray) : ReadOnlyProperty<Any, List<T>> {
-  private var lazy = Lazy<List<T>>()
-
-  override fun get(thisRef: Any, desc: PropertyMetadata): List<T> = lazy.get {
-    ids.map { id -> findView<T>(thisRef, id) }.filterNotNull()
-  }
+  protected abstract fun create(thisRef: Any, desc: PropertyMetadata): T
 }
 
 private class Lazy<T> {
@@ -95,5 +101,21 @@ private class Lazy<T> {
     }
     [suppress("UNCHECKED_CAST")]
     return value as T
+  }
+
+  fun reset() {
+    value = EMPTY
+  }
+}
+
+private object LazyRegistry {
+  private val lazyMap = WeakHashMap<Any, MutableCollection<Lazy<*>>>()
+
+  fun register(target: Any, lazy: Lazy<*>) {
+    lazyMap.getOrPut(target, { hashSetOf() }).add(lazy)
+  }
+
+  fun reset(target: Any) {
+    lazyMap.get(target)?.forEach { it.reset() }
   }
 }
