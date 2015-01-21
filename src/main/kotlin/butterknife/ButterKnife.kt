@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import kotlin.properties.ReadOnlyProperty
 import java.util.WeakHashMap
+import java.util.Collections
 
 public fun <T : View> ViewGroup.bindView(id: Int): ReadOnlyProperty<Any, T> = ViewBinding(id)
 public fun <T : View> Activity.bindView(id: Int): ReadOnlyProperty<Any, T> = ViewBinding(id)
@@ -112,7 +113,7 @@ private object LazyRegistry {
   private val lazyMap = WeakHashMap<Any, MutableCollection<Lazy<*>>>()
 
   fun register(target: Any, lazy: Lazy<*>) {
-    lazyMap.getOrPut(target, { hashSetOf() }).add(lazy)
+    lazyMap.getOrPut(target, { Collections.newSetFromMap(WeakHashMap()) }).add(lazy)
   }
 
   fun reset(target: Any) {
