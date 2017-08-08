@@ -1,13 +1,10 @@
-package butterknife
+package kotterknife
 
 import android.content.Context
-import android.widget.FrameLayout
-import android.widget.TextView
 import android.test.AndroidTestCase
 import android.view.View
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertEquals
+import android.widget.FrameLayout
+import android.widget.TextView
 
 public class ViewTest : AndroidTestCase() {
   public fun testCast() {
@@ -15,7 +12,7 @@ public class ViewTest : AndroidTestCase() {
       val name : TextView by bindView(1)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(textViewWithId(1))
     assertNotNull(example.name)
   }
@@ -25,7 +22,7 @@ public class ViewTest : AndroidTestCase() {
       val name : View by bindView(1)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     assertNotNull(example.name)
     example.removeAllViews()
@@ -38,7 +35,7 @@ public class ViewTest : AndroidTestCase() {
       val missing: View? by bindOptionalView(2)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     assertNotNull(example.present)
     assertNull(example.missing)
@@ -50,7 +47,7 @@ public class ViewTest : AndroidTestCase() {
       val missing: View? by bindOptionalView(2)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     assertNotNull(example.present)
     assertNull(example.missing)
@@ -65,11 +62,11 @@ public class ViewTest : AndroidTestCase() {
       val name : TextView? by bindView(1)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     try {
       example.name
     } catch (e: IllegalStateException) {
-      assertEquals("View ID 1 for 'name' not found.", e.getMessage())
+      assertEquals("View ID 1 for 'name' not found.", e.message)
     }
   }
 
@@ -78,12 +75,12 @@ public class ViewTest : AndroidTestCase() {
       val name : List<TextView> by bindViews(1, 2, 3)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     example.addView(viewWithId(2))
     example.addView(viewWithId(3))
     assertNotNull(example.name)
-    assertEquals(3, example.name.size)
+    assertEquals(3, example.name.count())
   }
 
   public fun testListCaches() {
@@ -91,15 +88,15 @@ public class ViewTest : AndroidTestCase() {
       val name : List<TextView> by bindViews(1, 2, 3)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     example.addView(viewWithId(2))
     example.addView(viewWithId(3))
     assertNotNull(example.name)
-    assertEquals(3, example.name.size)
+    assertEquals(3, example.name.count())
     example.removeAllViews()
     assertNotNull(example.name)
-    assertEquals(3, example.name.size)
+    assertEquals(3, example.name.count())
   }
 
   public fun testListMissingFails() {
@@ -107,13 +104,13 @@ public class ViewTest : AndroidTestCase() {
       val name : List<TextView> by bindViews(1, 2, 3)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     example.addView(viewWithId(3))
     try {
       example.name
     } catch (e: IllegalStateException) {
-      assertEquals("View ID 2 for 'name' not found.", e.getMessage())
+      assertEquals("View ID 2 for 'name' not found.", e.message)
     }
   }
 
@@ -122,11 +119,11 @@ public class ViewTest : AndroidTestCase() {
       val name : List<TextView> by bindOptionalViews(1, 2, 3)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     example.addView(viewWithId(3))
     assertNotNull(example.name)
-    assertEquals(2, example.name.size)
+    assertEquals(2, example.name.count())
   }
 
   public fun testOptionalListCaches() {
@@ -134,14 +131,14 @@ public class ViewTest : AndroidTestCase() {
       val name : List<TextView> by bindOptionalViews(1, 2, 3)
     }
 
-    val example = Example(getContext())
+    val example = Example(context)
     example.addView(viewWithId(1))
     example.addView(viewWithId(3))
     assertNotNull(example.name)
-    assertEquals(2, example.name.size)
+    assertEquals(2, example.name.count())
     example.removeAllViews()
     assertNotNull(example.name)
-    assertEquals(2, example.name.size)
+    assertEquals(2, example.name.count())
   }
 
   public fun testReset() {
@@ -153,19 +150,19 @@ public class ViewTest : AndroidTestCase() {
     example.addView(viewWithId(1))
     assertNotNull(example.name)
     example.removeAllViews()
-    ButterKnife.reset(example)
+    ButterKnife.unbind(example)
     assertNull(example.name)
   }
 
   private fun viewWithId(id: Int) : View {
-    val view = View(getContext())
-    view.setId(id)
+    val view = View(context)
+    view.id = id
     return view
   }
 
   private fun textViewWithId(id: Int) : View {
-    val view = TextView(getContext())
-    view.setId(id)
+    val view = TextView(context)
+    view.id = id
     return view
   }
 }
